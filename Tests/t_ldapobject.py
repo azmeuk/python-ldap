@@ -62,6 +62,26 @@ cn: Foo4
 
 """
 
+SCHEMA_TEMPLATE = """dn: cn=mySchema,cn=schema,cn=config
+objectClass: olcSchemaConfig
+cn: mySchema
+
+olcAttributeType: (  1.3.6.1.4.1.56207.1.1.1 NAME 'myAttribute'
+DESC 'foobar attribute
+EQUALITY caseExactMatch
+ORDERING caseExactOrderingMatch
+SUBSTR caseExactSubstringsMatch
+SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+SINGLE-VALUE
+USAGE userApplications
+X-ORIGIN 'foobar' )
+olcObjectClasses: ( 1.3.6.1.4.1.56207.1.2.2 NAME 'myClass'
+DESC 'foobar objectclass'
+SUP top
+STRUCTURAL
+MUST myAttribute
+X-ORIGIN 'foobar' )"""
+
 
 class Test00_SimpleLDAPObject(SlapdTestCase):
     """
@@ -464,6 +484,23 @@ class Test00_SimpleLDAPObject(SlapdTestCase):
         self.assertEqual(respvalue, None)
 
         l.delete_s(dn)
+
+    def test_slapadd(self):
+        with self.assertRaises(ldap.INVALID_DN_SYNTAX):
+            self._ldap_conn.add_s("myAttribute=foobar,ou=Container,%s" % self.server.suffix, [
+                ("objectClass", b'myClass'),
+                ("myAttribute", b'foobar'),
+            ])
+
+        with open("/tmp/schema.ldif", "w") as fd:
+            fd.write(SCHEMA_TEMPLATE)
+
+        self.server.slapadd(SCHEMA_TEMPLATE, ["-n0", "-l", "/tmp/schema.ldif"])
+
+        self._ldap_conn.add_s("myAttribute=foobar,ou=Container,%s" % self.server.suffix, [
+            ("objectClass", b'myClass'),
+            ("myAttribute", b'foobar'),
+        ])
 
 
 class Test01_ReconnectLDAPObject(Test00_SimpleLDAPObject):

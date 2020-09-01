@@ -262,6 +262,7 @@ class SlapdObject(object):
         self.PATH_LDAPDELETE = self._find_command('ldapdelete')
         self.PATH_LDAPMODIFY = self._find_command('ldapmodify')
         self.PATH_LDAPWHOAMI = self._find_command('ldapwhoami')
+        self.PATH_SLAPADD = self._find_command('slapadd')
 
         self.PATH_SLAPD = os.environ.get('SLAPD', None)
         if not self.PATH_SLAPD:
@@ -523,10 +524,14 @@ class SlapdObject(object):
                    stdin_data=None):  # pragma: no cover
         if ldap_uri is None:
             ldap_uri = self.default_ldap_uri
-        args = [
-            ldapcommand,
-            '-H', ldap_uri,
-        ] + self._cli_auth_args() + (extra_args or [])
+
+        if ldapcommand.split("/")[-1].startswith("ldap"):
+            args = [ldapcommand, '-H', ldap_uri] + self._cli_auth_args()
+        else:
+            args = [ldapcommand, '-f', self._slapd_conf]
+
+        args += (extra_args or [])
+
         self._log.debug('Run command: %r', ' '.join(args))
         proc = subprocess.Popen(
             args, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -576,6 +581,13 @@ class SlapdObject(object):
             extra_args.append('-r')
         extra_args.append(dn)
         self._cli_popen(self.PATH_LDAPDELETE, extra_args=extra_args)
+
+    def slapadd(self, ldif, extra_args=None):
+        """
+        Runs slapadd on this slapd instance, passing it the ldif content
+        """
+        self._cli_popen(self.PATH_SLAPADD, extra_args=extra_args,
+                        )
 
     def __enter__(self):
         self.start()
