@@ -176,6 +176,16 @@ class SlapdObject:
     :param openldap_schema_files: A list of schema names or schema paths to
         load at startup. By default this only contains `core`.
 
+    :param host: The host on which the slapd server will listen to.
+        The default value is `127.0.0.1`.
+
+    :param port: The port on which the slapd server will listen to.
+        If `None` a random available port will be chosen.
+
+    :param log_level: The verbosity of SlapdObject..
+        The default value is `logging.WARNING`.
+
+
     .. versionchanged:: 3.1
 
         Added context manager functionality
@@ -208,16 +218,44 @@ class SlapdObject:
     SBIN_PATH = os.environ.get('SBIN', _add_sbin(BIN_PATH))
 
     # create loggers once, multiple calls mess up refleak tests
-    _log = combined_logger('python-ldap-test')
+    _log = None
 
-    def __init__(self):
+    def __init__(self,
+                 host=None,
+                 port=None,
+                 log_level=logging.WARN,
+                 openldap_schema_files=None,
+                 database=None,
+                 suffix=None,
+                 root_cn=None,
+                 root_pw=None,
+                 datadir_prefix=None,
+                 ):
+        if self._log is None:
+            self._log = combined_logger('python-ldap-test', log_level=log_level)
+
+        if openldap_schema_files is not None:
+            self.openldap_schema_files = openldap_schema_files
+
+        if database is not None:
+            self.database = database
+
+        if suffix is not None:
+            self.suffix = suffix
+
+        if root_cn is not None:
+            self.root_cn = root_cn
+
+        if root_pw is not None:
+            self.root_pw = root_pw
+
         self._proc = None
-        self._port = self._avail_tcp_port()
+        self._port = port or self._avail_tcp_port()
         self.server_id = self._port % 4096
-        self.testrundir = os.path.join(self.TMPDIR, 'python-ldap-test-%d' % self._port)
+        self.testrundir = os.path.join(self.TMPDIR, '%s-%d' % (datadir_prefix or "python-ldap-test", self._port))
         self._slapd_conf = os.path.join(self.testrundir, 'slapd.d')
         self._db_directory = os.path.join(self.testrundir, "openldap-data")
-        self.ldap_uri = "ldap://%s:%d/" % (self.local_host, self._port)
+        self.ldap_uri = "ldap://%s:%d/" % (host or self.local_host, self._port)
         if HAVE_LDAPI:
             ldapi_path = os.path.join(self.testrundir, 'ldapi')
             self.ldapi_uri = "ldapi://%s" % quote_plus(ldapi_path)
