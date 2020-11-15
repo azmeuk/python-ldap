@@ -558,26 +558,28 @@ class SlapdObject:
         )
         self._log.debug('stdin_data=%r', stdin_data)
         if proc.stdout is not None:
-            self._log.debug('stdout=%r', proc.stdout.decode("utf-8"))
+            self._log.debug('stdout=%s', proc.stdout.decode("utf-8"))
         if proc.stderr is not None:
-            self._log.debug('stderr=%r', proc.stderr.decode("utf-8"))
+            self._log.debug('stderr=%s', proc.stderr.decode("utf-8"))
         if proc.returncode != 0:
             raise RuntimeError(
-                '{!r} process failed:\n{!r}\n{!r}'.format(
-                    args, proc.stdout, proc.stderr
-                )
+                'Process failed: {!r}'.format(" ".join(args))
             )
         return proc
 
     def ldapwhoami(self, extra_args=None):
         """
         Runs ldapwhoami on this slapd instance
+
+        :return: A :class:`subprocess.CompletedProcess` with the execution data.
         """
         return self._cli_popen(self.PATH_LDAPWHOAMI, extra_args=extra_args)
 
     def ldapadd(self, ldif, extra_args=None):
         """
         Runs ldapadd on this slapd instance, passing it the ldif content
+
+        :return: A :class:`subprocess.CompletedProcess` with the execution data.
         """
         return self._cli_popen(self.PATH_LDAPADD, extra_args=extra_args,
                         stdin_data=ldif.encode('utf-8'))
@@ -585,6 +587,8 @@ class SlapdObject:
     def ldapmodify(self, ldif, extra_args=None):
         """
         Runs ldapadd on this slapd instance, passing it the ldif content
+
+        :return: A :class:`subprocess.CompletedProcess` with the execution data.
         """
         return self._cli_popen(self.PATH_LDAPMODIFY, extra_args=extra_args,
                         stdin_data=ldif.encode('utf-8'))
@@ -592,6 +596,8 @@ class SlapdObject:
     def ldapdelete(self, dn, recursive=False, extra_args=None):
         """
         Runs ldapdelete on this slapd instance, deleting 'dn'
+
+        :return: A :class:`subprocess.CompletedProcess` with the execution data.
         """
         if extra_args is None:
             extra_args = []
@@ -603,6 +609,8 @@ class SlapdObject:
     def slapadd(self, ldif, extra_args=None):
         """
         Runs slapadd on this slapd instance, passing it the ldif content
+
+        :return: A :class:`subprocess.CompletedProcess` with the execution data.
         """
         return self._cli_popen(
             self.PATH_SLAPADD,
